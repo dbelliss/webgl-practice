@@ -34,10 +34,48 @@ var Initialize = function() {
 }
 
 class Game {
-
-    createCube() {
+    createCubeGameObject() {
         var gl = this.gl;
-        var box = generateBox();
+        var box = generateBox([2,2,2]);
+        var boxVertices = box[0];
+        var boxIndices = box[1];
+        // Create buffer object to send data between CPU and GPU
+        var boxVertexBufferObject = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, boxVertexBufferObject);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(boxVertices), gl.STATIC_DRAW);
+
+        var boxIndexBufferObject = gl.createBuffer();
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, boxIndexBufferObject);
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(boxIndices), gl.STATIC_DRAW);
+
+        var positionAttribLocation = gl.getAttribLocation(program, 'vertPosition');
+        var colorAttribLocation = gl.getAttribLocation(program, 'vertColor');
+        gl.vertexAttribPointer(
+            positionAttribLocation, // Attribute location
+            3, // Number of elements per attribute
+            gl.FLOAT, // Type of elements
+            gl.FALSE,
+            6 * Float32Array.BYTES_PER_ELEMENT, // Size of an individual vertex
+            0 // Offset from the beginning of a single vertex to this attribute
+        );
+        gl.vertexAttribPointer(
+            colorAttribLocation, // Attribute location
+            3, // Number of elements per attribute
+            gl.FLOAT, // Type of elements
+            gl.FALSE,
+            6 * Float32Array.BYTES_PER_ELEMENT, // Size of an individual vertex
+            3 * Float32Array.BYTES_PER_ELEMENT // Offset from the beginning of a single vertex to this attribute
+        );
+
+        gl.enableVertexAttribArray(positionAttribLocation);
+        gl.enableVertexAttribArray(colorAttribLocation);
+        return new GameObject("Cube", )
+    }
+
+    createCube(offset=[0,0,0]) {
+
+        var gl = this.gl;
+        var box = generateBox(offset);
         var boxVertices = box[0];
         var boxIndices = box[1];
 
@@ -76,6 +114,7 @@ class Game {
 
     initializeUniforms() {
         var gl = this.gl
+        var canvas = this.canvas
         var matWorldUniformLocation = gl.getUniformLocation(program, 'mWorld');
         var matViewUniformLocation = gl.getUniformLocation(program, 'mView');
         var matProjUniformLocation = gl.getUniformLocation(program, 'mProj');
@@ -83,6 +122,11 @@ class Game {
         this.worldMatrix = new Float32Array(16);
         this.viewMatrix = new Float32Array(16);
         this.projMatrix = new Float32Array(16);
+
+        // Setup Camera
+        glMatrix.mat4.identity(this.worldMatrix);
+        glMatrix.mat4.lookAt(this.viewMatrix, [0, 0, -8], [0, 0, 0], [0, 1, 0]);
+        glMatrix.mat4.perspective(this.projMatrix, glMatrix.glMatrix.toRadian(45), canvas.clientWidth / canvas.clientHeight, 0.1, 1000.0);
 
         gl.uniformMatrix4fv(matWorldUniformLocation, gl.FALSE, this.worldMatrix);
         gl.uniformMatrix4fv(matViewUniformLocation, gl.FALSE, this.viewMatrix);
@@ -95,6 +139,7 @@ class Game {
 
     constructor() {
         var canvas = document.getElementById('game-surface');
+        this.canvas = canvas;
         var initializedObjs = InitializeGL(canvas, vertexShaderText, singleColorShaderText);
 
         if (initializedObjs == undefined) {
@@ -105,59 +150,62 @@ class Game {
         var gl = initializedObjs[0]
         clearGL(gl)
         this.gl = gl
-        var program = initializedObjs[1]
+        var basicProgram = initializedObjs[1]
 
-        var programs = [program];
+        var programs = [basicProgram];
 
         // Initialize All Programs
         gl.useProgram(program);
         this.initializeSimpleProgram();
 
-        var boxIndicesLength = this.createCube();
-
-
         // Create mapping from program to GameObjects
        var programTogameObjects = new Map()
         for (var programNum = 0; programNum < programs.length; programNum++) {
-            var program = programs[programNum];
-            programTogameObjects[program] = [new GameObject("Test")]
+            var curProgram = programs[programNum];
+            programTogameObjects[curProgram] = []
         }
 
         // Create Test GameObject
-        var box = new GameObject("box1");
-
-
-        // Set up camera
-        glMatrix.mat4.identity(this.worldMatrix);
-        glMatrix.mat4.lookAt(this.viewMatrix, [0, 0, -8], [0, 0, 0], [0, 1, 0]);
-        glMatrix.mat4.perspective(this.projMatrix, glMatrix.glMatrix.toRadian(45), canvas.clientWidth / canvas.clientHeight, 0.1, 1000.0);
-
-
+        var cube = new Cube("TestCube")
+        programTogameObjects[basicProgram].push(cube);
 
         // Render Loop
         var prevTime = performance.now() / 1000; // Get seconds
         var curTime = performance.now() / 1000;
         var deltaTime = 0
         var frameNum = 0
-
+        var numCubes = 0
+        var timeUntilNewCube = 2;
         var render = function () {
             curTime = performance.now() / 1000;
             deltaTime = curTime - prevTime;
-            clearGL(gl)
 
+            timeUntilNewCube -= deltaTime;
+
+            if (numCubes < 10 && timeUntilNewCube < 0) {
+                programTogameObjects[basicProgram].push(new Cube(numCubes, [randomVal() * 4, randomVal() * 4, randomVal() * 4]));
+                timeUntilNewCube = 2;
+                numCubes++;
+            }
+
+            clearGL(gl)
             for (var programNum = 0; programNum < programs.length; programNum++) {
                 var program = programs[programNum];
                 var gameObjects = programTogameObjects[program];
                 gl.useProgram(program);
                 for (var gameObjectNum = 0; gameObjectNum < gameObjects.length; gameObjectNum++) {
                     var gameObject = gameObjects[gameObjectNum];
+                    gameObject.render(gl)
                 }
             }
             frameNum++;
             requestAnimationFrame(render);
+            prevTime = curTime;
         };
         requestAnimationFrame(render);
     }
 }
+
+
 
 
