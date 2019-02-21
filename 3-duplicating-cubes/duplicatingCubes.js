@@ -34,84 +34,6 @@ var Initialize = function() {
 }
 
 class Game {
-    createCubeGameObject() {
-        var gl = this.gl;
-        var box = generateBox([2,2,2]);
-        var boxVertices = box[0];
-        var boxIndices = box[1];
-        // Create buffer object to send data between CPU and GPU
-        var boxVertexBufferObject = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, boxVertexBufferObject);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(boxVertices), gl.STATIC_DRAW);
-
-        var boxIndexBufferObject = gl.createBuffer();
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, boxIndexBufferObject);
-        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(boxIndices), gl.STATIC_DRAW);
-
-        var positionAttribLocation = gl.getAttribLocation(program, 'vertPosition');
-        var colorAttribLocation = gl.getAttribLocation(program, 'vertColor');
-        gl.vertexAttribPointer(
-            positionAttribLocation, // Attribute location
-            3, // Number of elements per attribute
-            gl.FLOAT, // Type of elements
-            gl.FALSE,
-            6 * Float32Array.BYTES_PER_ELEMENT, // Size of an individual vertex
-            0 // Offset from the beginning of a single vertex to this attribute
-        );
-        gl.vertexAttribPointer(
-            colorAttribLocation, // Attribute location
-            3, // Number of elements per attribute
-            gl.FLOAT, // Type of elements
-            gl.FALSE,
-            6 * Float32Array.BYTES_PER_ELEMENT, // Size of an individual vertex
-            3 * Float32Array.BYTES_PER_ELEMENT // Offset from the beginning of a single vertex to this attribute
-        );
-
-        gl.enableVertexAttribArray(positionAttribLocation);
-        gl.enableVertexAttribArray(colorAttribLocation);
-        return new GameObject("Cube", )
-    }
-
-    createCube(offset=[0,0,0]) {
-
-        var gl = this.gl;
-        var box = generateBox(offset);
-        var boxVertices = box[0];
-        var boxIndices = box[1];
-
-        // Create buffer object to send data between CPU and GPU
-        var boxVertexBufferObject = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, boxVertexBufferObject);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(boxVertices), gl.STATIC_DRAW);
-
-        var boxIndexBufferObject = gl.createBuffer();
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, boxIndexBufferObject);
-        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(boxIndices), gl.STATIC_DRAW);
-
-        var positionAttribLocation = gl.getAttribLocation(program, 'vertPosition');
-        var colorAttribLocation = gl.getAttribLocation(program, 'vertColor');
-        gl.vertexAttribPointer(
-            positionAttribLocation, // Attribute location
-            3, // Number of elements per attribute
-            gl.FLOAT, // Type of elements
-            gl.FALSE,
-            6 * Float32Array.BYTES_PER_ELEMENT, // Size of an individual vertex
-            0 // Offset from the beginning of a single vertex to this attribute
-        );
-        gl.vertexAttribPointer(
-            colorAttribLocation, // Attribute location
-            3, // Number of elements per attribute
-            gl.FLOAT, // Type of elements
-            gl.FALSE,
-            6 * Float32Array.BYTES_PER_ELEMENT, // Size of an individual vertex
-            3 * Float32Array.BYTES_PER_ELEMENT // Offset from the beginning of a single vertex to this attribute
-        );
-
-        gl.enableVertexAttribArray(positionAttribLocation);
-        gl.enableVertexAttribArray(colorAttribLocation);
-        return boxIndices.length
-    };
-
     initializeUniforms() {
         var gl = this.gl
         var canvas = this.canvas
@@ -183,7 +105,7 @@ class Game {
             timeUntilNewCube -= deltaTime;
 
             if (numCubes < 10 && timeUntilNewCube < 0) {
-                programTogameObjects[basicProgram].push(new Cube(numCubes, [randomVal() * 4, randomVal() * 4, randomVal() * 4]));
+                programTogameObjects[basicProgram].push(new Cube(numCubes, new Vector3(randomVal() * 4, randomVal() * 4, randomVal() * 4)));
                 timeUntilNewCube = 2;
                 numCubes++;
             }
