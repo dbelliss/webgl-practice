@@ -1,160 +1,151 @@
 "use strict";
 
-const vertexShaderText = `
-    precision lowp float;
-    attribute vec3 vertPosition;
-    attribute vec3 vertColor;
-    varying vec3 fragColor;
-
-    uniform mat4 mWorld;
-    uniform mat4 mView;
-    uniform mat4 mProj;
-
-    void main()
-    {
-       fragColor = vertColor;
-       gl_Position = mProj * mView * mWorld * vec4(vertPosition, 1.0);
-    }
-    `;
-
-
-var singleColorShaderText = `
-    precision lowp float;
-    varying vec3 fragColor;
-    void main()
-    {
-       gl_FragColor = vec4(fragColor, 1.0);
-    }
-    `;
-
-
-
 var Initialize = function() {
     var game = new Game();
 }
 
 class Game {
-    initializeUniforms() {
-        var gl = this.gl
-        var canvas = this.canvas
-        var matWorldUniformLocation = gl.getUniformLocation(program, 'mWorld');
-        var matViewUniformLocation = gl.getUniformLocation(program, 'mView');
-        var matProjUniformLocation = gl.getUniformLocation(program, 'mProj');
-
+    initializeMatrices() {
         this.worldMatrix = new Float32Array(16);
         this.viewMatrix = new Float32Array(16);
         this.projMatrix = new Float32Array(16);
 
-        // Setup Camera
-        glMatrix.mat4.identity(this.worldMatrix);
-        glMatrix.mat4.lookAt(this.viewMatrix, [0, -20, 10], [0, 0, 0], [0, 1, 0]);
-        glMatrix.mat4.perspective(this.projMatrix, glMatrix.glMatrix.toRadian(45), canvas.clientWidth / canvas.clientHeight, 0.1, 1000.0);
 
-        gl.uniformMatrix4fv(matWorldUniformLocation, gl.FALSE, this.worldMatrix);
-        gl.uniformMatrix4fv(matViewUniformLocation, gl.FALSE, this.viewMatrix);
-        gl.uniformMatrix4fv(matProjUniformLocation, gl.FALSE, this.projMatrix);
-    }
-
-    initializeSimpleProgram() {
-        this.initializeUniforms()
     }
 
     constructor() {
+        // Create WebGL object
         var canvas = document.getElementById('game-surface');
         this.canvas = canvas;
-        var initializedObjs = InitializeGL(canvas, vertexShaderText, singleColorShaderText);
-
-        if (initializedObjs == undefined) {
+        this.gl = InitializeGL(canvas);
+        if (this.gl == undefined) {
             console.error('Could not initialize WebGL');
             return;
         }
-
-        var gl = initializedObjs[0]
+        var gl = this.gl  // Shorter name
         clearGL(gl)
-        this.gl = gl
-        var basicProgram = initializedObjs[1]
 
-        var programs = [basicProgram];
+        // Initialize world, view, and proj matrixes
+        this.initializeMatrices();
 
-        // Initialize All Programs
-        gl.useProgram(program);
-        this.initializeSimpleProgram();
+        // Initialize all Programs
+        this.programs = []
+        this.simpleProgram = new SimpleProgram(gl, this.worldMatrix, this.viewMatrix, this.projMatrix, this.canvas.clientWidth / this.canvas.clientHeight)
+        this.programs.push(this.simpleProgram);
 
         // Create mapping from program to GameObjects
-       var programTogameObjects = new Map()
-        for (var programNum = 0; programNum < programs.length; programNum++) {
-            var curProgram = programs[programNum];
-            programTogameObjects[curProgram] = []
+        this.programTogameObjects = new Map()
+        for (var i = 0; i < this.programs.length; i++) {
+            this.programTogameObjects[this.programs[i].name] = []
         }
 
-        var activeGameObjects = []
+        // Create list of all active GameObjects to act on during FixedUpdate
+        this.activeGameObjects = []
+
         // Create Player GameObject
-        var player = new Cube("Player", new Vector3(0,0,0))
-        activeGameObjects.push(player);
-        programTogameObjects[basicProgram].push(player);
+        this.createPlayer();
 
-        // Create reference cubes
-        for (var i = 0; i < 2; i++) {
-            var leftCube = new Cube("leftCube" + i, new Vector3(-4,i * 1, 0))
-            activeGameObjects.push(leftCube);
-            programTogameObjects[basicProgram].push(leftCube);
+        // Create Obstacles
+        this.createObstacles()
 
-            var rightCube = new Cube("rightCube" + i, new Vector3(4,i * 1, 0))
-            activeGameObjects.push(rightCube);
-            programTogameObjects[basicProgram].push(rightCube);
-        }
+        // Create Obstacles
+        this.createPickups(1)
 
+        // Create Camera
+        this.camera = new Camera(gl, this.worldMatrix, this.viewMatrix, this.projMatrix);
 
         // Render Loop
         var numFrames = 0
-
-        var matViewUniformLocation = gl.getUniformLocation(program, 'mView');
-        var viewMatrix = this.viewMatrix
-
+        var theta = 0
+        var phi = 0
         function render () {
-            glMatrix.mat4.lookAt(viewMatrix, [0 + player.transform.position.x, -30 + player.transform.position.y, 10 + player.transform.position.z], [player.transform.position.x, player.transform.position.y, player.transform.position.z], [0, 1, 0]);
-            gl.uniformMatrix4fv(matViewUniformLocation, gl.FALSE, viewMatrix);
-            clearGL(gl)
-            for (var programNum = 0; programNum < programs.length; programNum++) {
-                var program = programs[programNum];
-                var gameObjects = programTogameObjects[program];
-                gl.useProgram(program);
+            clearGL(this.gl)
+            var cameraInput = InputManager.readCameraInput()
+            theta = cameraInput.x;
+            phi = cameraInput.y;
+
+
+
+            this.camera.trackObject(this.player, theta, phi)
+            for (var programNum = 0; programNum < this.programs.length; programNum++) {
+                var program = this.programs[programNum];
+                var gameObjects = this.programTogameObjects[program.name];
+                gl.useProgram(program.program);
+                program.updateCamera();
+                var boxVertices = []
+                var boxIndices = []
                 for (var gameObjectNum = 0; gameObjectNum < gameObjects.length; gameObjectNum++) {
                     var gameObject = gameObjects[gameObjectNum];
-                    gameObject.render(gl)
+                    var renderData = gameObject.getRenderData()
+                    var numIndiced = boxVertices.length/6;
+                    boxVertices = boxVertices.concat(renderData[0])
+
+                    for (var i = 0; i < renderData[1].length; i++) {
+                        renderData[1][i] += numIndiced;
+                    }
+                    boxIndices = boxIndices.concat(renderData[1])
+                    if (gameObjectNum > 50) {
+                        program.draw(gl, boxVertices, boxIndices)
+                        boxVertices = []
+                        boxIndices = []
+                    }
                 }
+                if (boxVertices.length > 0) {
+                    program.draw(gl, boxVertices, boxIndices)
+                }
+
             }
             numFrames++;
-            requestAnimationFrame(render);
+            requestAnimationFrame(render.bind(this));
         };
-        requestAnimationFrame(render);
+        requestAnimationFrame(render.bind(this));
 
-        function sleep(ms) {
-            return new Promise(resolve => setTimeout(resolve, ms));
+        this.beginFixedUpdateLoop();
+    }
+
+    sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    async beginFixedUpdateLoop() {
+        var prevTime = performance.now() / 1000; // Get seconds
+        var curTime = performance.now() / 1000;
+        var deltaTime = 0
+
+        while(true) {
+            var inputVector = InputManager.readInput()
+            this.player.addForce(inputVector);
+            curTime = performance.now() / 1000;
+            deltaTime = curTime - prevTime;
+            prevTime = curTime;
+            this.activeGameObjects.forEach(function (gameObject) {
+                gameObject.fixedUpdate(deltaTime)
+            })
+            await this.sleep(1000/60);
         }
+    }
 
-        async function beginFixedUpdateLoop() {
-            var prevTime = performance.now() / 1000; // Get seconds
-            var curTime = performance.now() / 1000;
-            var deltaTime = 0
+    createObstacles() {
+        console.log("Creating obstacles");
+    }
 
-            while(true) {
-                var inputVector = readInput()
-                player.addForce(inputVector);
-                curTime = performance.now() / 1000;
-                deltaTime = curTime - prevTime;
-                prevTime = curTime;
-                activeGameObjects.forEach(function (gameObject) {
-                    gameObject.fixedUpdate(deltaTime)
-                })
-                await sleep(1000/60);
-            }
+    createPlayer() {
+        console.log("Creating player");
+        this.player = new Cube("Player", new Vector3(0,0,0));
+        this.activeGameObjects.push(this.player);
+        this.programTogameObjects[this.simpleProgram.name].push(this.player);
+    }
+
+    createPickups(numPickups) {
+        console.log("Creating pickups");
+        for (var i = 0; i < numPickups; i++) {
+            var leftCube = new Cube("leftCube" + i, new Vector3(-4,i * 1, 0))
+            this.activeGameObjects.push(leftCube);
+            this.programTogameObjects[this.simpleProgram.name].push(leftCube);
+
+            var rightCube = new Cube("rightCube" + i, new Vector3(4,i * 1, 0))
+            this.activeGameObjects.push(rightCube);
+            this.programTogameObjects[this.simpleProgram.name].push(rightCube);
         }
-        beginFixedUpdateLoop();
-
     }
 }
-
-
-
-

@@ -96,10 +96,6 @@ class Cube extends GameObject{
         this.transform.position = offset
     }
 
-    getRenderData() {
-        return [this.boxVertices.slice(), this.boxIndices.slice()]
-    }
-
     render(gl) {
         // Create buffer object to send data between CPU and GPU
         var boxVertexBufferObject = gl.createBuffer();
@@ -164,13 +160,6 @@ class Vector3 {
 
     static random(upperBound) {
         return new Vector3(randomVal() * upperBound, randomVal() * upperBound, randomVal() * upperBound);
-    }
-
-    normalize() {
-        var d = Math.sqrt(Math.pow(this.x, 2) + Math.pow(this.y, 2) + Math.pow(this.z, 2))
-        this.x /= d;
-        this.y /= d;
-        this.z /= d;
     }
 }
 
