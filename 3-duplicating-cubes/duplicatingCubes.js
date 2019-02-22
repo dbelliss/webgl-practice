@@ -126,6 +126,10 @@ class Game {
         };
         requestAnimationFrame(render);
     }
+
+    updateCamera() {
+        glMatrix.mat4.lookAt(this.viewMatrix, [0, 0, -8], [0, 0, 0], [0, 1, 0]);
+    }
 }
 
 

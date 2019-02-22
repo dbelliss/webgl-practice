@@ -47,7 +47,7 @@ class Game {
 
         // Setup Camera
         glMatrix.mat4.identity(this.worldMatrix);
-        glMatrix.mat4.lookAt(this.viewMatrix, [0, 0, -20], [0, 0, 0], [0, 1, 0]);
+        glMatrix.mat4.lookAt(this.viewMatrix, [0, -20, 10], [0, 0, 0], [0, 1, 0]);
         glMatrix.mat4.perspective(this.projMatrix, glMatrix.glMatrix.toRadian(45), canvas.clientWidth / canvas.clientHeight, 0.1, 1000.0);
 
         gl.uniformMatrix4fv(matWorldUniformLocation, gl.FALSE, this.worldMatrix);
@@ -108,7 +108,6 @@ class Game {
             }
             numFrames++;
             requestAnimationFrame(render);
-
         };
         requestAnimationFrame(render);
 
@@ -121,29 +120,16 @@ class Game {
             var curTime = performance.now() / 1000;
             var deltaTime = 0
 
-            // Set up spawning cubes
-            var numCubes = 1
-            var cubeSpawnTime = .2;
-            var timeSinceLastCube = cubeSpawnTime
-
             while(true) {
+                var inputVector = readInput()
+                console.log(inputVector);
+                player.addForce(inputVector);
                 curTime = performance.now() / 1000;
                 deltaTime = curTime - prevTime;
-                timeSinceLastCube -= deltaTime;
                 prevTime = curTime;
                 activeGameObjects.forEach(function (gameObject) {
                     gameObject.fixedUpdate(deltaTime)
                 })
-
-                if (numCubes < 100 && timeSinceLastCube <= 0) {
-                    numCubes++;
-                    var newCube = new Cube(numCubes, new Vector3(0,0,0))
-                    newCube.mass = Math.abs(randomVal()) * 3;
-                    newCube.addForce(Vector3.random(10))
-                    activeGameObjects.push(newCube);
-                    programTogameObjects[basicProgram].push(newCube);
-                    timeSinceLastCube = cubeSpawnTime
-                }
                 await sleep(1000/60);
             }
         }

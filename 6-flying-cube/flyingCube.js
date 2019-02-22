@@ -1,7 +1,7 @@
 "use strict";
 
 const vertexShaderText = `
-    precision mediump float;
+    precision lowp float;
     attribute vec3 vertPosition;
     attribute vec3 vertColor;
     varying vec3 fragColor;
@@ -19,7 +19,7 @@ const vertexShaderText = `
 
 
 var singleColorShaderText = `
-    precision mediump float;
+    precision lowp float;
     varying vec3 fragColor;
     void main()
     {
@@ -47,7 +47,7 @@ class Game {
 
         // Setup Camera
         glMatrix.mat4.identity(this.worldMatrix);
-        glMatrix.mat4.lookAt(this.viewMatrix, [0, 0, -20], [0, 0, 0], [0, 1, 0]);
+        glMatrix.mat4.lookAt(this.viewMatrix, [0, -20, 10], [0, 0, 0], [0, 1, 0]);
         glMatrix.mat4.perspective(this.projMatrix, glMatrix.glMatrix.toRadian(45), canvas.clientWidth / canvas.clientHeight, 0.1, 1000.0);
 
         gl.uniformMatrix4fv(matWorldUniformLocation, gl.FALSE, this.worldMatrix);
@@ -93,9 +93,27 @@ class Game {
         activeGameObjects.push(player);
         programTogameObjects[basicProgram].push(player);
 
+        // Create reference cubes
+        for (var i = 0; i < 2; i++) {
+            var leftCube = new Cube("leftCube" + i, new Vector3(-4,i * 1, 0))
+            activeGameObjects.push(leftCube);
+            programTogameObjects[basicProgram].push(leftCube);
+
+            var rightCube = new Cube("rightCube" + i, new Vector3(4,i * 1, 0))
+            activeGameObjects.push(rightCube);
+            programTogameObjects[basicProgram].push(rightCube);
+        }
+
+
         // Render Loop
         var numFrames = 0
-        var render = function () {
+
+        var matViewUniformLocation = gl.getUniformLocation(program, 'mView');
+        var viewMatrix = this.viewMatrix
+
+        function render () {
+            glMatrix.mat4.lookAt(viewMatrix, [0 + player.transform.position.x, -30 + player.transform.position.y, 10 + player.transform.position.z], [player.transform.position.x, player.transform.position.y, player.transform.position.z], [0, 1, 0]);
+            gl.uniformMatrix4fv(matViewUniformLocation, gl.FALSE, viewMatrix);
             clearGL(gl)
             for (var programNum = 0; programNum < programs.length; programNum++) {
                 var program = programs[programNum];
@@ -108,7 +126,6 @@ class Game {
             }
             numFrames++;
             requestAnimationFrame(render);
-
         };
         requestAnimationFrame(render);
 
@@ -121,29 +138,15 @@ class Game {
             var curTime = performance.now() / 1000;
             var deltaTime = 0
 
-            // Set up spawning cubes
-            var numCubes = 1
-            var cubeSpawnTime = .2;
-            var timeSinceLastCube = cubeSpawnTime
-
             while(true) {
+                var inputVector = readInput()
+                player.addForce(inputVector);
                 curTime = performance.now() / 1000;
                 deltaTime = curTime - prevTime;
-                timeSinceLastCube -= deltaTime;
                 prevTime = curTime;
                 activeGameObjects.forEach(function (gameObject) {
                     gameObject.fixedUpdate(deltaTime)
                 })
-
-                if (numCubes < 100 && timeSinceLastCube <= 0) {
-                    numCubes++;
-                    var newCube = new Cube(numCubes, new Vector3(0,0,0))
-                    newCube.mass = Math.abs(randomVal()) * 3;
-                    newCube.addForce(Vector3.random(10))
-                    activeGameObjects.push(newCube);
-                    programTogameObjects[basicProgram].push(newCube);
-                    timeSinceLastCube = cubeSpawnTime
-                }
                 await sleep(1000/60);
             }
         }
