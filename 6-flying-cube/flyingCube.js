@@ -33,6 +33,13 @@ class Game {
         this.simpleProgram = new SimpleProgram(gl, this.worldMatrix, this.viewMatrix, this.projMatrix, this.canvas.clientWidth / this.canvas.clientHeight)
         this.programs.push(this.simpleProgram);
 
+        this.simpleProgram2 = new SimpleProgram(gl, this.worldMatrix, this.viewMatrix, this.projMatrix, this.canvas.clientWidth / this.canvas.clientHeight)
+        this.simpleProgram2.name = "SimpleProgram2"
+        this.programs.push(this.simpleProgram2);
+
+        this.textureProgram = new TextureProgram(gl, this.worldMatrix, this.viewMatrix, this.projMatrix, this.canvas.clientWidth / this.canvas.clientHeight)
+        this.programs.push(this.textureProgram);
+
         // Create mapping from program to GameObjects
         this.programTogameObjects = new Map()
         for (var i = 0; i < this.programs.length; i++) {
@@ -51,6 +58,12 @@ class Game {
         // Create Obstacles
         this.createPickups(1)
 
+                // Create Obstacles
+        this.createPickups2(2)
+
+        // Create textured boxes
+        this.createCrates(5)
+
         // Create Camera
         this.camera = new Camera(gl, this.worldMatrix, this.viewMatrix, this.projMatrix);
 
@@ -63,9 +76,6 @@ class Game {
             var cameraInput = InputManager.readCameraInput()
             theta = cameraInput.x;
             phi = cameraInput.y;
-
-
-
             this.camera.trackObject(this.player, theta, phi)
             for (var programNum = 0; programNum < this.programs.length; programNum++) {
                 var program = this.programs[programNum];
@@ -74,24 +84,48 @@ class Game {
                 program.updateCamera();
                 var boxVertices = []
                 var boxIndices = []
-                for (var gameObjectNum = 0; gameObjectNum < gameObjects.length; gameObjectNum++) {
-                    var gameObject = gameObjects[gameObjectNum];
-                    var renderData = gameObject.getRenderData()
-                    var numIndiced = boxVertices.length/6;
-                    boxVertices = boxVertices.concat(renderData[0])
 
-                    for (var i = 0; i < renderData[1].length; i++) {
-                        renderData[1][i] += numIndiced;
+                if (program.name == "SimpleProgram" || program.name == "SimpleProgram2") {
+                    for (var gameObjectNum = 0; gameObjectNum < gameObjects.length; gameObjectNum++) {
+                        var gameObject = gameObjects[gameObjectNum];
+                        var renderData = gameObject.getRenderData()
+                        var numIndiced = boxVertices.length/6;
+                        boxVertices = boxVertices.concat(renderData[0])
+
+                        for (var i = 0; i < renderData[1].length; i++) {
+                            renderData[1][i] += numIndiced;
+                        }
+                        boxIndices = boxIndices.concat(renderData[1])
+                        if (gameObjectNum > 50) {
+                            program.draw(gl, boxVertices, boxIndices)
+                            boxVertices = []
+                            boxIndices = []
+                        }
                     }
-                    boxIndices = boxIndices.concat(renderData[1])
-                    if (gameObjectNum > 50) {
+                    if (boxVertices.length > 0) {
                         program.draw(gl, boxVertices, boxIndices)
-                        boxVertices = []
-                        boxIndices = []
                     }
                 }
-                if (boxVertices.length > 0) {
-                    program.draw(gl, boxVertices, boxIndices)
+                if (program.name == "TextureProgram") {
+                    for (var gameObjectNum = 0; gameObjectNum < gameObjects.length; gameObjectNum++) {
+                        var gameObject = gameObjects[gameObjectNum];
+                        var renderData = gameObject.getRenderData()
+                        var numIndiced = boxVertices.length/5;
+                        boxVertices = boxVertices.concat(renderData[0])
+
+                        for (var i = 0; i < renderData[1].length; i++) {
+                            renderData[1][i] += numIndiced;
+                        }
+                        boxIndices = boxIndices.concat(renderData[1])
+                        if (gameObjectNum > 50) {
+                            program.draw(gl, boxVertices, boxIndices)
+                            boxVertices = []
+                            boxIndices = []
+                        }
+                    }
+                    if (boxVertices.length > 0) {
+                        program.draw(gl, boxVertices, boxIndices)
+                    }
                 }
 
             }
@@ -136,16 +170,42 @@ class Game {
         this.programTogameObjects[this.simpleProgram.name].push(this.player);
     }
 
+    createPickups2(numPickups) {
+        console.log("Creating pickups2");
+        for (var i = 0; i < numPickups; i++) {
+            var leftCube = new Cube("leftCube" + i, new Vector3(-2,i * 1, 2))
+            this.activeGameObjects.push(leftCube);
+            this.programTogameObjects[this.simpleProgram2.name].push(leftCube);
+
+            var rightCube = new Cube("rightCube" + i, new Vector3(2,i * 1, 2))
+            this.activeGameObjects.push(rightCube);
+            this.programTogameObjects[this.simpleProgram2.name].push(rightCube);
+        }
+    }
+
     createPickups(numPickups) {
         console.log("Creating pickups");
         for (var i = 0; i < numPickups; i++) {
-            var leftCube = new Cube("leftCube" + i, new Vector3(-4,i * 1, 0))
+            var leftCube = new Cube("leftCube" + i, new Vector3(-3,i * 1, 0))
             this.activeGameObjects.push(leftCube);
             this.programTogameObjects[this.simpleProgram.name].push(leftCube);
 
-            var rightCube = new Cube("rightCube" + i, new Vector3(4,i * 1, 0))
+            var rightCube = new Cube("rightCube" + i, new Vector3(3,i * 1, 0))
             this.activeGameObjects.push(rightCube);
             this.programTogameObjects[this.simpleProgram.name].push(rightCube);
+        }
+    }
+
+    createCrates(numPickups) {
+        console.log("Creating creates");
+        for (var i = 0; i < numPickups; i++) {
+            var leftCube = new TexturedCube("leftCube" + i, new Vector3(-1,i * 1, 0))
+            this.activeGameObjects.push(leftCube);
+            this.programTogameObjects[this.textureProgram.name].push(leftCube);
+
+            var rightCube = new TexturedCube("rightCube" + i, new Vector3(1,i * 1, 0))
+            this.activeGameObjects.push(rightCube);
+            this.programTogameObjects[this.textureProgram.name].push(rightCube);
         }
     }
 }
