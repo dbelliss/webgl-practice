@@ -62,7 +62,9 @@ class Game {
         this.createPickups2(2)
 
         // Create textured boxes
-        this.createCrates(5)
+        this.createCrates(10)
+
+        this.createWalls()
 
         // Create Camera
         this.camera = new Camera(gl, this.worldMatrix, this.viewMatrix, this.projMatrix);
@@ -147,8 +149,6 @@ class Game {
         var deltaTime = 0
 
         while(true) {
-            var inputVector = InputManager.readInput()
-            this.player.addForce(inputVector);
             curTime = performance.now() / 1000;
             deltaTime = curTime - prevTime;
             prevTime = curTime;
@@ -165,7 +165,7 @@ class Game {
 
     createPlayer() {
         console.log("Creating player");
-        this.player = new Cube("Player", new Vector3(0,0,0));
+        this.player = new Player("Player", new Vector3(0,0,0));
         this.activeGameObjects.push(this.player);
         this.programTogameObjects[this.simpleProgram.name].push(this.player);
     }
@@ -199,13 +199,20 @@ class Game {
     createCrates(numPickups) {
         console.log("Creating creates");
         for (var i = 0; i < numPickups; i++) {
-            var leftCube = new TexturedCube("leftCube" + i, new Vector3(-1,i * 1, 0))
+            var leftCube = new TexturedCube("leftCube" + i, new Vector3(-1,-2, i * 20))
             this.activeGameObjects.push(leftCube);
             this.programTogameObjects[this.textureProgram.name].push(leftCube);
 
-            var rightCube = new TexturedCube("rightCube" + i, new Vector3(1,i * 1, 0))
+            var rightCube = new TexturedCube("rightCube" + i, new Vector3(1,-2, i * 20))
             this.activeGameObjects.push(rightCube);
             this.programTogameObjects[this.textureProgram.name].push(rightCube);
         }
+    }
+
+    createWalls() {
+//        var leftWall= new Cube("LeftWall", new Vector3(-100, 0, 0))
+//            this.activeGameObjects.push(leftCube);
+//            this.programTogameObjects[this.simpleProgram.name].push(leftCube);
+
     }
 }
