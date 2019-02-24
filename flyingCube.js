@@ -1,6 +1,6 @@
 "use strict";
 
-var Initialize = function() {
+function Initialize() {
     var game = new Game();
 }
 
@@ -28,6 +28,10 @@ class Game {
         // Initialize world, view, and proj matrixes
         this.initializeMatrices();
 
+
+        // Load all textures
+        this.textureLoader = new TextureLoader(gl)
+
         // Initialize all Programs
         this.programs = []
         this.simpleProgram = new SimpleProgram(gl, this.worldMatrix, this.viewMatrix, this.projMatrix, this.canvas.clientWidth / this.canvas.clientHeight)
@@ -52,14 +56,14 @@ class Game {
         // Create Player GameObject
         this.createPlayer();
 
-        // Create Obstacles
-        this.createObstacles()
+        // Create asteroids
 
-        // Create Obstacles
+        this.createAsteroids(10)
+
+        // Create crates
+
         this.createPickups(1)
 
-                // Create Obstacles
-        this.createPickups2(2)
 
         // Create textured boxes
         this.createCrates(10)
@@ -84,49 +88,49 @@ class Game {
                 var gameObjects = this.programTogameObjects[program.name];
                 gl.useProgram(program.program);
                 program.updateCamera();
-                var boxVertices = []
+                var objectVertices = []
                 var boxIndices = []
 
                 if (program.name == "SimpleProgram" || program.name == "SimpleProgram2") {
                     for (var gameObjectNum = 0; gameObjectNum < gameObjects.length; gameObjectNum++) {
                         var gameObject = gameObjects[gameObjectNum];
                         var renderData = gameObject.getRenderData()
-                        var numIndiced = boxVertices.length/6;
-                        boxVertices = boxVertices.concat(renderData[0])
+                        var numIndiced = objectVertices.length/6;
+                        objectVertices = objectVertices.concat(renderData[0])
 
                         for (var i = 0; i < renderData[1].length; i++) {
                             renderData[1][i] += numIndiced;
                         }
                         boxIndices = boxIndices.concat(renderData[1])
                         if (gameObjectNum > 50) {
-                            program.draw(gl, boxVertices, boxIndices)
-                            boxVertices = []
+                            program.draw(gl, objectVertices, boxIndices)
+                            objectVertices = []
                             boxIndices = []
                         }
                     }
-                    if (boxVertices.length > 0) {
-                        program.draw(gl, boxVertices, boxIndices)
+                    if (objectVertices.length > 0) {
+                        program.draw(gl, objectVertices, boxIndices)
                     }
                 }
                 if (program.name == "TextureProgram") {
                     for (var gameObjectNum = 0; gameObjectNum < gameObjects.length; gameObjectNum++) {
                         var gameObject = gameObjects[gameObjectNum];
                         var renderData = gameObject.getRenderData()
-                        var numIndiced = boxVertices.length/5;
-                        boxVertices = boxVertices.concat(renderData[0])
+                        var numIndices = objectVertices.length/5;
+                        objectVertices = objectVertices.concat(renderData[0])
 
                         for (var i = 0; i < renderData[1].length; i++) {
-                            renderData[1][i] += numIndiced;
+                            renderData[1][i] += numIndices;
                         }
                         boxIndices = boxIndices.concat(renderData[1])
                         if (gameObjectNum > 50) {
-                            program.draw(gl, boxVertices, boxIndices)
-                            boxVertices = []
+                            program.draw(gl, objectVertices, boxIndices)
+                            objectVertices = []
                             boxIndices = []
                         }
                     }
-                    if (boxVertices.length > 0) {
-                        program.draw(gl, boxVertices, boxIndices)
+                    if (objectVertices.length > 0) {
+                        program.draw(gl, objectVertices, boxIndices, this.textureLoader.getTexture("box"))
                     }
                 }
 
@@ -159,7 +163,7 @@ class Game {
         }
     }
 
-    createObstacles() {
+    createAsteroids() {
         console.log("Creating obstacles");
     }
 
