@@ -58,9 +58,11 @@ class Game {
         this.activeGameObjects = []
 
         // Create GameObjects
+        this.crates = []
+        this.asteroids = []
         this.createPlayer();
-        this.createAsteroids(10)
-        this.createCrates(10)
+        this.createAsteroids(100)
+        this.createCrates(100)
         this.createWalls()
         this.camera = new Camera(gl, this.worldMatrix, this.viewMatrix, this.projMatrix);
 
@@ -71,10 +73,11 @@ class Game {
         function render () {
             clearGL(this.gl)
             var cameraInput = InputManager.readCameraInput()
-            this.textureProgram.updateCamera()
+
             theta = cameraInput.x;
             phi = cameraInput.y;
             this.camera.trackObject(this.player, theta, phi);
+                        this.textureProgram.updateCamera()
             this.renderer.render()
             numFrames++;
             requestAnimationFrame(render.bind(this));
@@ -92,7 +95,7 @@ class Game {
         var prevTime = performance.now() / 1000; // Get seconds
         var curTime = performance.now() / 1000;
         var deltaTime = 0
-
+        var updateNum = 0
         while(true) {
             curTime = performance.now() / 1000;
             deltaTime = curTime - prevTime;
@@ -100,6 +103,19 @@ class Game {
             this.activeGameObjects.forEach(function (gameObject) {
                 gameObject.fixedUpdate(.02)
             })
+
+            if (updateNum % 100 == 0) {
+                for (var i = 0; i < this.crates.length; i++) {
+                    this.crates[i].addForce(Vector3.random(10));
+                }
+            }
+
+            if (updateNum % 100 == 50) {
+                for (var i = 0; i < this.asteroids.length; i++) {
+                    this.asteroids[i].addForce(Vector3.random(10));
+                }
+            }
+            updateNum++;
             await this.sleep(1000/60);
         }
     }
@@ -107,20 +123,24 @@ class Game {
     createAsteroids(numAsteroids) {
         console.log("Creating asteroids");
         for (var i = 0; i < numAsteroids; i++) {
-            this.addGameObject(new Cube("crate" + i, Vector3.random(30), "susan", this.gl.STATIC_DRAW))
+            var asteroid = new Cube("asteroid" + i, Vector3.random(30), "susan", this.gl.STATIC_DRAW)
+            this.asteroids.push(asteroid);
+            this.addGameObject(asteroid);
         }
     }
 
     createPlayer() {
         console.log("Creating player");
-        this.player = new Player("Player", new Vector3(0,0,0), "susan", this.gl.DYNAMIC_DRAW);
+        this.player = new Player("Player", new Vector3(0,0,0), "burningCrate", this.gl.DYNAMIC_DRAW);
         this.addGameObject(this.player);
     }
 
     createCrates(numCrates) {
         console.log("Creating crates");
         for (var i = 0; i < numCrates; i++) {
-            this.addGameObject(new Cube("crate" + i, Vector3.random(20), "crate", this.gl.STATIC_DRAW))
+            var crate = new Cube("crate" + i, Vector3.random(20), "crate", this.gl.STATIC_DRAW)
+            this.crates.push(crate);
+            this.addGameObject(crate);
         }
     }
 
