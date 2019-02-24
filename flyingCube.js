@@ -9,8 +9,6 @@ class Game {
         this.worldMatrix = new Float32Array(16);
         this.viewMatrix = new Float32Array(16);
         this.projMatrix = new Float32Array(16);
-
-
     }
 
     constructor() {
@@ -28,49 +26,42 @@ class Game {
         // Initialize world, view, and proj matrixes
         this.initializeMatrices();
 
-
         // Load all textures
         this.textureLoader = new TextureLoader(gl)
 
-        // Initialize all Programs
-        this.programs = []
-        this.simpleProgram = new SimpleProgram(gl, this.worldMatrix, this.viewMatrix, this.projMatrix, this.canvas.clientWidth / this.canvas.clientHeight)
-        this.programs.push(this.simpleProgram);
-
-        this.simpleProgram2 = new SimpleProgram(gl, this.worldMatrix, this.viewMatrix, this.projMatrix, this.canvas.clientWidth / this.canvas.clientHeight)
-        this.simpleProgram2.name = "SimpleProgram2"
-        this.programs.push(this.simpleProgram2);
-
         this.textureProgram = new TextureProgram(gl, this.worldMatrix, this.viewMatrix, this.projMatrix, this.canvas.clientWidth / this.canvas.clientHeight)
-        this.programs.push(this.textureProgram);
 
-        // Create mapping from program to GameObjects
-        this.programTogameObjects = new Map()
-        for (var i = 0; i < this.programs.length; i++) {
-            this.programTogameObjects[this.programs[i].name] = []
-        }
+        // Load renderer
+        this.renderer = new Renderer(this.gl, this.textureLoader, this.textureProgram);
+
+        // Initialize all Programs
+//        this.programs = []
+//        this.simpleProgram = new SimpleProgram(gl, this.worldMatrix, this.viewMatrix, this.projMatrix, this.canvas.clientWidth / this.canvas.clientHeight)
+//        this.programs.push(this.simpleProgram);
+//
+//        this.simpleProgram2 = new SimpleProgram(gl, this.worldMatrix, this.viewMatrix, this.projMatrix, this.canvas.clientWidth / this.canvas.clientHeight)
+//        this.simpleProgram2.name = "SimpleProgram2"
+//        this.programs.push(this.simpleProgram2);
+
+
+//        this.programs.push(this.textureProgram);
+
+//        // Create mapping from program to GameObjects
+//        this.programTogameObjects = new Map()
+//        for (var i = 0; i < this.programs.length; i++) {
+//            this.programTogameObjects[this.programs[i].name] = []
+//        }
+
+        this.gl.useProgram(this.textureProgram.program);
 
         // Create list of all active GameObjects to act on during FixedUpdate
         this.activeGameObjects = []
 
-        // Create Player GameObject
+        // Create GameObjects
         this.createPlayer();
-
-        // Create asteroids
-
         this.createAsteroids(10)
-
-        // Create crates
-
-        this.createPickups(1)
-
-
-        // Create textured boxes
         this.createCrates(10)
-
         this.createWalls()
-
-        // Create Camera
         this.camera = new Camera(gl, this.worldMatrix, this.viewMatrix, this.projMatrix);
 
         // Render Loop
@@ -80,61 +71,11 @@ class Game {
         function render () {
             clearGL(this.gl)
             var cameraInput = InputManager.readCameraInput()
+            this.textureProgram.updateCamera()
             theta = cameraInput.x;
             phi = cameraInput.y;
-            this.camera.trackObject(this.player, theta, phi)
-            for (var programNum = 0; programNum < this.programs.length; programNum++) {
-                var program = this.programs[programNum];
-                var gameObjects = this.programTogameObjects[program.name];
-                gl.useProgram(program.program);
-                program.updateCamera();
-                var objectVertices = []
-                var boxIndices = []
-
-                if (program.name == "SimpleProgram" || program.name == "SimpleProgram2") {
-                    for (var gameObjectNum = 0; gameObjectNum < gameObjects.length; gameObjectNum++) {
-                        var gameObject = gameObjects[gameObjectNum];
-                        var renderData = gameObject.getRenderData()
-                        var numIndiced = objectVertices.length/6;
-                        objectVertices = objectVertices.concat(renderData[0])
-
-                        for (var i = 0; i < renderData[1].length; i++) {
-                            renderData[1][i] += numIndiced;
-                        }
-                        boxIndices = boxIndices.concat(renderData[1])
-                        if (gameObjectNum > 50) {
-                            program.draw(gl, objectVertices, boxIndices)
-                            objectVertices = []
-                            boxIndices = []
-                        }
-                    }
-                    if (objectVertices.length > 0) {
-                        program.draw(gl, objectVertices, boxIndices)
-                    }
-                }
-                if (program.name == "TextureProgram") {
-                    for (var gameObjectNum = 0; gameObjectNum < gameObjects.length; gameObjectNum++) {
-                        var gameObject = gameObjects[gameObjectNum];
-                        var renderData = gameObject.getRenderData()
-                        var numIndices = objectVertices.length/5;
-                        objectVertices = objectVertices.concat(renderData[0])
-
-                        for (var i = 0; i < renderData[1].length; i++) {
-                            renderData[1][i] += numIndices;
-                        }
-                        boxIndices = boxIndices.concat(renderData[1])
-                        if (gameObjectNum > 50) {
-                            program.draw(gl, objectVertices, boxIndices)
-                            objectVertices = []
-                            boxIndices = []
-                        }
-                    }
-                    if (objectVertices.length > 0) {
-                        program.draw(gl, objectVertices, boxIndices, this.textureLoader.getTexture("box"))
-                    }
-                }
-
-            }
+            this.camera.trackObject(this.player, theta, phi);
+            this.renderer.render()
             numFrames++;
             requestAnimationFrame(render.bind(this));
         };
@@ -157,66 +98,38 @@ class Game {
             deltaTime = curTime - prevTime;
             prevTime = curTime;
             this.activeGameObjects.forEach(function (gameObject) {
-                gameObject.fixedUpdate(deltaTime)
+                gameObject.fixedUpdate(.02)
             })
             await this.sleep(1000/60);
         }
     }
 
-    createAsteroids() {
-        console.log("Creating obstacles");
+    createAsteroids(numAsteroids) {
+        console.log("Creating asteroids");
+        for (var i = 0; i < numAsteroids; i++) {
+            this.addGameObject(new Cube("crate" + i, Vector3.random(30), "susan", this.gl.STATIC_DRAW))
+        }
     }
 
     createPlayer() {
         console.log("Creating player");
-        this.player = new Player("Player", new Vector3(0,0,0));
-        this.activeGameObjects.push(this.player);
-        this.programTogameObjects[this.simpleProgram.name].push(this.player);
+        this.player = new Player("Player", new Vector3(0,0,0), "susan", this.gl.DYNAMIC_DRAW);
+        this.addGameObject(this.player);
     }
 
-    createPickups2(numPickups) {
-        console.log("Creating pickups2");
-        for (var i = 0; i < numPickups; i++) {
-            var leftCube = new Cube("leftCube" + i, new Vector3(-2,i * 1, 2))
-            this.activeGameObjects.push(leftCube);
-            this.programTogameObjects[this.simpleProgram2.name].push(leftCube);
-
-            var rightCube = new Cube("rightCube" + i, new Vector3(2,i * 1, 2))
-            this.activeGameObjects.push(rightCube);
-            this.programTogameObjects[this.simpleProgram2.name].push(rightCube);
+    createCrates(numCrates) {
+        console.log("Creating crates");
+        for (var i = 0; i < numCrates; i++) {
+            this.addGameObject(new Cube("crate" + i, Vector3.random(20), "crate", this.gl.STATIC_DRAW))
         }
     }
 
-    createPickups(numPickups) {
-        console.log("Creating pickups");
-        for (var i = 0; i < numPickups; i++) {
-            var leftCube = new Cube("leftCube" + i, new Vector3(-3,i * 1, 0))
-            this.activeGameObjects.push(leftCube);
-            this.programTogameObjects[this.simpleProgram.name].push(leftCube);
-
-            var rightCube = new Cube("rightCube" + i, new Vector3(3,i * 1, 0))
-            this.activeGameObjects.push(rightCube);
-            this.programTogameObjects[this.simpleProgram.name].push(rightCube);
-        }
-    }
-
-    createCrates(numPickups) {
-        console.log("Creating creates");
-        for (var i = 0; i < numPickups; i++) {
-            var leftCube = new TexturedCube("leftCube" + i, new Vector3(-1,-2, i * 20))
-            this.activeGameObjects.push(leftCube);
-            this.programTogameObjects[this.textureProgram.name].push(leftCube);
-
-            var rightCube = new TexturedCube("rightCube" + i, new Vector3(1,-2, i * 20))
-            this.activeGameObjects.push(rightCube);
-            this.programTogameObjects[this.textureProgram.name].push(rightCube);
-        }
+    addGameObject(gameObject) {
+        this.activeGameObjects.push(gameObject);
+        this.renderer.addObject(gameObject)
     }
 
     createWalls() {
-//        var leftWall= new Cube("LeftWall", new Vector3(-100, 0, 0))
-//            this.activeGameObjects.push(leftCube);
-//            this.programTogameObjects[this.simpleProgram.name].push(leftCube);
-
+        console.log("Walls have not yet been implemented");
     }
 }
