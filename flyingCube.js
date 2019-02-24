@@ -123,7 +123,7 @@ class Game {
     createAsteroids(numAsteroids) {
         console.log("Creating asteroids");
         for (var i = 0; i < numAsteroids; i++) {
-            var asteroid = new Cube("asteroid" + i, Vector3.random(30), "susan", this.gl.STATIC_DRAW)
+            var asteroid = new Cube("asteroid" + i, Vector3.random(30), "susan", this.gl.DYNAMIC_DRAW)
             this.asteroids.push(asteroid);
             this.addGameObject(asteroid);
         }
@@ -138,7 +138,7 @@ class Game {
     createCrates(numCrates) {
         console.log("Creating crates");
         for (var i = 0; i < numCrates; i++) {
-            var crate = new Cube("crate" + i, Vector3.random(20), "crate", this.gl.STATIC_DRAW)
+            var crate = new Cube("crate" + i, Vector3.random(20), "crate", this.gl.DYNAMIC_DRAW)
             this.crates.push(crate);
             this.addGameObject(crate);
         }
@@ -146,7 +146,7 @@ class Game {
 
     addGameObject(gameObject) {
         this.activeGameObjects.push(gameObject);
-        this.renderer.addObject(gameObject)
+//        this.renderer.addObject(gameObject)
     }
 
     createWalls() {
