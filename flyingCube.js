@@ -61,8 +61,8 @@ class Game {
         this.crates = []
         this.asteroids = []
         this.createPlayer();
-        this.createAsteroids(100)
-        this.createCrates(100)
+        this.createAsteroids(1)
+        this.createCrates(0)
         this.createWalls()
         this.camera = new Camera(gl, this.worldMatrix, this.viewMatrix, this.projMatrix);
 
