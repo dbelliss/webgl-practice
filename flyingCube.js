@@ -2,8 +2,10 @@
 
 function Initialize() {
 
-    loadJSONResource('./Assets/Asteroid.json', function (modelErr, modelObj) {
-        var game = new Game(modelObj);
+    loadJSONResource('./Assets/Asteroid.json', function (modelErr, asteroidObj) {
+        loadJSONResource('./Assets/Susan.json', function (modelErr, rocketObj) {
+            var game = new Game(asteroidObj, rocketObj);
+        });
     });
 }
 
@@ -14,7 +16,7 @@ class Game {
         this.projMatrix = new Float32Array(16);
     }
 
-    constructor(asteroidJson) {
+    constructor(asteroidJson, rocketJson) {
         // Create WebGL object
         var canvas = document.getElementById('game-surface');
         this.canvas = canvas;
@@ -63,9 +65,9 @@ class Game {
         // Create GameObjects
         this.crates = []
         this.asteroids = []
-        this.createPlayer();
-//        this.createAsteroids(20, asteroidJson)
-        this.createCrates(100)
+        this.createPlayer(rocketJson);
+        this.createAsteroids(1, asteroidJson)
+        this.createCrates(4)
         this.createWalls()
         this.camera = new Camera(gl, this.worldMatrix, this.viewMatrix, this.projMatrix);
 
@@ -90,11 +92,11 @@ class Game {
             for (var i = 0; i < this.asteroids.length; i++) {
                 var gameObject = this.asteroids[i]
                 var jsonData = gameObject.json;
-                this.textureProgram.drawMesh(this.gl, asteroidJson.meshes[0].vertices, [].concat.apply([], asteroidJson.meshes[0].faces), asteroidJson.meshes[0].texturecoords[0], this.textureLoader.textures["default"], gl.DYNAMIC_DRAW, gameObject.transform)
+                this.textureProgram.drawMesh(this.gl, asteroidJson.meshes[0].vertices, [].concat.apply([], asteroidJson.meshes[0].faces), asteroidJson.meshes[0].texturecoords[0], this.textureLoader.textures["rock"], gl.DYNAMIC_DRAW, gameObject.transform)
             }
 
             var renderData = this.player.renderData;
-            renderData.program.draw(this.gl, renderData.vertices, renderData.indices, renderData.texture, renderData.drawType, this.player.transform)
+            this.textureProgram.drawMesh(this.gl, rocketJson.meshes[0].vertices, [].concat.apply([], rocketJson.meshes[0].faces), rocketJson.meshes[0].texturecoords[0], this.textureLoader.textures["susan"], gl.DYNAMIC_DRAW, this.player.transform)
 
             numFrames++;
             requestAnimationFrame(render.bind(this));
@@ -121,7 +123,6 @@ class Game {
             })
 
             this.player.transform.rotation.x = (this.player.transform.rotation.x + 1) % 360
-            console.log(this.player.transform.position)
             for (var i = 0; i < this.crates.length; i++) {
                 var crate = this.crates[i];
                 if (updateNum % 1000 == 60) {
@@ -168,7 +169,7 @@ class Game {
         }
     }
 
-    createPlayer() {
+    createPlayer(rocketJson) {
         console.log("Creating player");
         this.player = new Player("Player", new Vector3(0,0,0), this.textureLoader.getTexture("burningCrate"), this.gl.DYNAMIC_DRAW, this.textureProgram);
         this.addGameObject(this.player);
