@@ -3,7 +3,7 @@
 function Initialize() {
 
     loadJSONResource('./Assets/Asteroid.json', function (modelErr, asteroidObj) {
-        loadJSONResource('./Assets/Susan.json', function (modelErr, rocketObj) {
+        loadJSONResource('./Assets/rocket.json', function (modelErr, rocketObj) {
             var game = new Game(asteroidObj, rocketObj);
         });
     });
@@ -34,28 +34,11 @@ class Game {
         // Load all textures
         this.textureLoader = new TextureLoader(gl)
 
+        // Load the program that WebGL will use
         this.textureProgram = new TextureProgram(gl, this.worldMatrix, this.viewMatrix, this.projMatrix, this.canvas.clientWidth / this.canvas.clientHeight)
 
         // Load renderer
         this.renderer = new Renderer(this.gl, this.textureLoader, this.textureProgram);
-
-        // Initialize all Programs
-//        this.programs = []
-//        this.simpleProgram = new SimpleProgram(gl, this.worldMatrix, this.viewMatrix, this.projMatrix, this.canvas.clientWidth / this.canvas.clientHeight)
-//        this.programs.push(this.simpleProgram);
-//
-//        this.simpleProgram2 = new SimpleProgram(gl, this.worldMatrix, this.viewMatrix, this.projMatrix, this.canvas.clientWidth / this.canvas.clientHeight)
-//        this.simpleProgram2.name = "SimpleProgram2"
-//        this.programs.push(this.simpleProgram2);
-
-
-//        this.programs.push(this.textureProgram);
-
-//        // Create mapping from program to GameObjects
-//        this.programTogameObjects = new Map()
-//        for (var i = 0; i < this.programs.length; i++) {
-//            this.programTogameObjects[this.programs[i].name] = []
-//        }
 
         this.gl.useProgram(this.textureProgram.program);
 
@@ -67,7 +50,7 @@ class Game {
         this.asteroids = []
         this.createPlayer(rocketJson);
         this.createAsteroids(1, asteroidJson)
-        this.createCrates(1)
+        this.createCrates(0)
         this.createWalls()
         this.camera = new Camera(gl, this.worldMatrix, this.viewMatrix, this.projMatrix);
 
@@ -86,19 +69,25 @@ class Game {
             for (var i = 0; i < this.crates.length; i++) {
 
                 var gameObject = this.crates[i]
-                console.log(gameObject.velocity)
                 var renderData = gameObject.renderData;
                 renderData.program.draw(this.gl, renderData.vertices, renderData.indices, renderData.texture, renderData.drawType, gameObject.transform)
             }
 
             for (var i = 0; i < this.asteroids.length; i++) {
                 var gameObject = this.asteroids[i]
-                var jsonData = gameObject.json;
-                this.textureProgram.drawMesh(this.gl, asteroidJson.meshes[0].vertices, [].concat.apply([], asteroidJson.meshes[0].faces), asteroidJson.meshes[0].texturecoords[0], this.textureLoader.textures["rock"], gl.DYNAMIC_DRAW, gameObject.transform)
+                var renderDataList = gameObject.renderData
+                for (var j = 0; j < renderDataList.length; j++) {
+                    var renderData = renderDataList[j]
+                    this.textureProgram.drawMesh(this.gl, renderData.vertices, renderData.indices, renderData.textureIndices, renderData.texture, gl.DYNAMIC_DRAW, gameObject.transform)
+                }
             }
 
-            var renderData = this.player.renderData;
-            this.textureProgram.drawMesh(this.gl, rocketJson.meshes[0].vertices, [].concat.apply([], rocketJson.meshes[0].faces), rocketJson.meshes[0].texturecoords[0], this.textureLoader.textures["susan"], gl.DYNAMIC_DRAW, this.player.transform)
+            var gameObject = this.player
+            var renderDataList = gameObject.renderData
+            for (var j = 0; j < renderDataList.length; j++) {
+                var renderData = renderDataList[j]
+                this.textureProgram.drawMesh(this.gl, renderData.vertices, renderData.indices, renderData.textureIndices, renderData.texture, gl.DYNAMIC_DRAW, gameObject.transform)
+            }
 
             numFrames++;
             requestAnimationFrame(render.bind(this));
@@ -140,8 +129,10 @@ class Game {
                     crate.transform.rotation.z = (crate.transform.rotation.z + 1) % 360
                 }
             }
+            for (var i = 0; i < this.asteroids.length; i++) {
 
-            this.asteroids[0].transform.rotation.x = (this.asteroids[0].transform.rotation.x + 1) % 360
+                this.asteroids[i].transform.rotation.x = (this.asteroids[i].transform.rotation.x + 1) % 360
+            }
 //            this.asteroids[0].velocity.x = 5
 
 
@@ -162,7 +153,7 @@ class Game {
     createAsteroids(numAsteroids, asteroidJson) {
         console.log("Creating asteroids");
         for (var i = 0; i < numAsteroids; i++) {
-            var asteroid = new MeshObject("asteroid" + i, new Vector3(2,1,1), this.textureLoader.getTexture("susan"), this.gl.DYNAMIC_DRAW, this.textureProgram)
+            var asteroid = new MeshObject("asteroid" + i, new Vector3(2,1,1), this.textureLoader.getTexture("rock"), asteroidJson)
             asteroid.transform.scale.add(Vector3.random(10))
             asteroid.transform.rotation.x = Math.random() * 360
             asteroid.transform.rotation.y = Math.random() * 360
@@ -176,14 +167,15 @@ class Game {
 
     createPlayer(rocketJson) {
         console.log("Creating player");
-        this.player = new Player("Player", new Vector3(0,0,0), this.textureLoader.getTexture("burningCrate"), this.gl.DYNAMIC_DRAW, this.textureProgram);
+        this.player = new Player("Player", new Vector3(0,0,0), this.textureLoader.getTexture("rocket"), rocketJson);
+        this.player.transform.scale.scale(.01)
         this.addGameObject(this.player);
     }
 
     createCrates(numCrates) {
         console.log("Creating crates");
         for (var i = 0; i < numCrates; i++) {
-            var crate = new Cube("crate" + i, new Vector3(4,1,1), this.textureLoader.getTexture("crate"), this.gl.DYNAMIC_DRAW, this.textureProgram)
+            var crate = new Cube("crate" + i, new Vector3(4,1,1), this.textureLoader.getTexture("crate"))
             crate.transform.rotation.x = Math.random() * 360
             crate.transform.rotation.y = Math.random() * 360
             crate.transform.rotation.z = Math.random() * 360
