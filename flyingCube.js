@@ -73,20 +73,13 @@ class Game {
                 renderData.program.draw(this.gl, renderData.vertices, renderData.indices, renderData.texture, renderData.drawType, gameObject.transform)
             }
 
-            for (var i = 0; i < this.asteroids.length; i++) {
-                var gameObject = this.asteroids[i]
+            for (var i = 0; i < this.activeGameObjects.length; i++) {
+                var gameObject = this.activeGameObjects[i]
                 var renderDataList = gameObject.renderData
                 for (var j = 0; j < renderDataList.length; j++) {
                     var renderData = renderDataList[j]
                     this.textureProgram.drawMesh(this.gl, renderData.vertices, renderData.indices, renderData.textureIndices, renderData.texture, gl.DYNAMIC_DRAW, gameObject.transform)
                 }
-            }
-
-            var gameObject = this.player
-            var renderDataList = gameObject.renderData
-            for (var j = 0; j < renderDataList.length; j++) {
-                var renderData = renderDataList[j]
-                this.textureProgram.drawMesh(this.gl, renderData.vertices, renderData.indices, renderData.textureIndices, renderData.texture, gl.DYNAMIC_DRAW, gameObject.transform)
             }
 
             numFrames++;
