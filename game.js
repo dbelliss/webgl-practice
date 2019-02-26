@@ -18,6 +18,8 @@ class Game {
 
     constructor(asteroidJson, rocketJson) {
         var music = document.getElementById("music");
+        var pickup = document.getElementById("pickup");
+        var crash = document.getElementById("crash");
         var playPromise = music.play()
 
         if (playPromise !== null){
@@ -123,8 +125,15 @@ class Game {
 
             for (var i = 0; i < this.crates.length; i++) {
                 var crate = this.crates[i];
-                if (updateNum % 1000 == 60) {
-//                    this.crates[i].transform.position = new Vector3(0,0,0)
+                if (crate.transform.position.distance(this.player.transform.position) < 3) {
+                    console.log("Crate!")
+                    var pickupPromise = pickup.play()
+                    if (pickupPromise !== null){
+                        pickupPromise.catch(() => {
+                            console.error("Could not playback pickup");
+                        })
+                    }
+                    this.crates.splice(i,1);
                 }
                 if (i < this.crates.length/3) {
                     crate.transform.rotation.x = (crate.transform.rotation.x + 1) % 360
@@ -137,21 +146,27 @@ class Game {
                 }
             }
             for (var i = 0; i < this.asteroids.length; i++) {
-                this.asteroids[i].transform.rotation.x = (this.asteroids[i].transform.rotation.x + this.asteroids[i].rotationSpeed) % 360
+                var asteroid = this.asteroids[i]
+                if (asteroid.transform.position.distance(this.player.transform.position) < 5) {
+                    var crashPromise = crash.play()
+                    if (crashPromise !== null){
+                        crashPromise.catch(() => {
+                            console.error("Could not playback crash");
+                        })
+                    }
+                    console.log("Hit by asteroid")
+                }
+                if (i < this.asteroids.length/3) {
+                    asteroid.transform.rotation.x = (this.asteroids[i].transform.rotation.x + this.asteroids[i].rotationSpeed) % 360
+                }
+                else if (i < this.asteroids.length * 2/3) {
+                    asteroid.transform.rotation.y = (this.asteroids[i].transform.rotation.y + this.asteroids[i].rotationSpeed) % 360
+                }
+                else{
+                    asteroid.transform.rotation.z = (this.asteroids[i].transform.rotation.z + this.asteroids[i].rotationSpeed) % 360
+                }
             }
 
-//            this.asteroids[0].velocity.x = 5
-
-
-//            if (updateNum % 100 == 0) {
-
-//            }
-//
-//            if (updateNum % 100 == 50) {
-//                for (var i = 0; i < this.asteroids.length; i++) {
-//                    this.asteroids[i].addForce(Vector3.random(10));
-//                }
-//            }
             updateNum++;
             await this.sleep(1000/60);
         }
@@ -193,7 +208,6 @@ class Game {
         }
         this.player = new Player("Player", new Vector3(0,0,0), renderData);
         this.player.transform.scale.scale(.01)
-//        this.player.transform.rotation.z = 270
         this.addGameObject(this.player);
     }
 
@@ -207,6 +221,11 @@ class Game {
             this.crates.push(crate);
             this.addGameObject(crate);
         }
+
+        var crate = new Cube("crate" + i, Vector3.random(-500, 500), this.textureLoader.getTexture("crate"))
+        crate.transform.position = new Vector3(5,0,0)
+                    this.crates.push(crate);
+            this.addGameObject(crate);
     }
 
     addGameObject(gameObject) {
