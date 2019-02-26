@@ -18,7 +18,12 @@ class Game {
 
     constructor(asteroidJson, rocketJson) {
         var music = document.getElementById("music");
-        music.play()
+        var playPromise = music.play()
+
+        if (playPromise !== null){
+            playPromise.catch(() => { media.play(); })
+        }
+
         // Create WebGL object
         var canvas = document.getElementById('game-surface');
         this.canvas = canvas;
@@ -51,8 +56,8 @@ class Game {
         this.crates = []
         this.asteroids = []
         this.createPlayer(rocketJson);
-        this.createAsteroids(50, asteroidJson)
-        this.createCrates(10)
+        this.createAsteroids(1000, asteroidJson)
+        this.createCrates(1000)
         this.createWalls()
         this.camera = new Camera(gl, this.worldMatrix, this.viewMatrix, this.projMatrix);
 
@@ -69,12 +74,24 @@ class Game {
             this.camera.trackObject(this.player, theta, phi);
             this.textureProgram.updateCamera()
 
-            for (var i = 0; i < this.activeGameObjects.length; i++) {
-                var gameObject = this.activeGameObjects[i]
+            if (this.asteroids.length > 0) {
+                var renderDataList = this.asteroids[0].renderData
+                var renderData = renderDataList[0]
+                this.textureProgram.batchDraw(this.asteroids, renderData.vertices, renderData.indices, renderData.textureIndices, renderData.texture, gl.DYNAMIC_DRAW)
+            }
+
+            if (this.crates.length > 0) {
+                var renderDataList = this.crates[0].renderData
+                var renderData = renderDataList[0]
+                this.textureProgram.batchDraw(this.crates, renderData.vertices, renderData.indices, renderData.textureIndices, renderData.texture, gl.DYNAMIC_DRAW)
+            }
+
+            if (this.player) {
+                var gameObject = this.player
                 var renderDataList = gameObject.renderData
                 for (var j = 0; j < renderDataList.length; j++) {
                     var renderData = renderDataList[j]
-                    this.textureProgram.drawMesh(this.gl, renderData.vertices, renderData.indices, renderData.textureIndices, renderData.texture, gl.DYNAMIC_DRAW, gameObject.transform)
+                    this.textureProgram.drawMesh(renderData.vertices, renderData.indices, renderData.textureIndices, renderData.texture, gl.DYNAMIC_DRAW, gameObject.transform)
                 }
             }
 
@@ -118,7 +135,7 @@ class Game {
                 }
             }
             for (var i = 0; i < this.asteroids.length; i++) {
-                this.asteroids[i].transform.rotation.x = (this.asteroids[i].transform.rotation.x + .1) % 360
+                this.asteroids[i].transform.rotation.x = (this.asteroids[i].transform.rotation.x + this.asteroids[i].rotationSpeed) % 360
             }
 
 //            this.asteroids[0].velocity.x = 5
@@ -140,14 +157,23 @@ class Game {
 
     createAsteroids(numAsteroids, asteroidJson) {
         console.log("Creating asteroids");
+        var scales = [new Vector3(.1, .1, .1), new Vector3(.5, .2, .4), new Vector3(.1, .3, .2), new Vector3(.5, .5, .5), new Vector3(1, 1, 1)]
+        var renderData = []
+        var texture = this.textureLoader.getTexture("rock")
+        for (var i = 0; i < asteroidJson.meshes.length; i++) {
+            var vertices = asteroidJson.meshes[i].vertices
+            var indices = [].concat.apply([], asteroidJson.meshes[i].faces)
+            var textureVertices = asteroidJson.meshes[i].texturecoords[0]
+            renderData.push(new RenderData(texture, vertices, indices, textureVertices))
+        }
+
         for (var i = 0; i < numAsteroids; i++) {
-            var asteroid = new MeshObject("asteroid" + i, Vector3.random(100), this.textureLoader.getTexture("rock"), asteroidJson)
-//            asteroid.transform.scale.add(Vector3.random(10).scale(.1))
+            var asteroid = new MeshObject("asteroid" + i, Vector3.random(-700, 700), renderData)
+            asteroid.transform.scale = scales[Math.floor(scales.length * Math.random())]
             asteroid.transform.rotation.x = Math.random() * 360
             asteroid.transform.rotation.y = Math.random() * 360
             asteroid.transform.rotation.z = Math.random() * 360
-            asteroid.transform.scale = new Vector3(.1,.1,.1)
-
+            asteroid.rotationSpeed = Math.random() * 2
             this.asteroids.push(asteroid);
             this.addGameObject(asteroid);
         }
@@ -155,7 +181,15 @@ class Game {
 
     createPlayer(rocketJson) {
         console.log("Creating player");
-        this.player = new Player("Player", new Vector3(0,0,0), this.textureLoader.getTexture("rocket"), rocketJson);
+        var renderData = []
+        var texture = this.textureLoader.getTexture("rocket")
+        for (var i = 0; i < rocketJson.meshes.length; i++) {
+            var vertices = rocketJson.meshes[i].vertices
+            var indices = [].concat.apply([], rocketJson.meshes[i].faces)
+            var textureVertices = rocketJson.meshes[i].texturecoords[0]
+            renderData.push(new RenderData(texture, vertices, indices, textureVertices))
+        }
+        this.player = new Player("Player", new Vector3(0,0,0), renderData);
         this.player.transform.scale.scale(.01)
 //        this.player.transform.rotation.z = 270
         this.addGameObject(this.player);
@@ -164,7 +198,7 @@ class Game {
     createCrates(numCrates) {
         console.log("Creating crates");
         for (var i = 0; i < numCrates; i++) {
-            var crate = new Cube("crate" + i, Vector3.random(100), this.textureLoader.getTexture("crate"))
+            var crate = new Cube("crate" + i, Vector3.random(-500, 500), this.textureLoader.getTexture("crate"))
             crate.transform.rotation.x = Math.random() * 360
             crate.transform.rotation.y = Math.random() * 360
             crate.transform.rotation.z = Math.random() * 360
