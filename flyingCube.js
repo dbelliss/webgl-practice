@@ -17,6 +17,8 @@ class Game {
     }
 
     constructor(asteroidJson, rocketJson) {
+        var music = document.getElementById("music");
+        music.play()
         // Create WebGL object
         var canvas = document.getElementById('game-surface');
         this.canvas = canvas;
