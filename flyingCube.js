@@ -21,7 +21,9 @@ class Game {
         var playPromise = music.play()
 
         if (playPromise !== null){
-            playPromise.catch(() => { media.play(); })
+            playPromise.catch(() => {
+                console.error("Could not payback music");
+            })
         }
 
         // Create WebGL object
